@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply antialiased overflow-x-hidden bg-emerald-50 text-slate-800;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+  
+  .emerald-gradient {
+    @apply bg-gradient-to-br from-emerald-600 to-emerald-800;
+  }
+  
+  .admin-gradient {
+    @apply bg-gradient-to-br from-emerald-800 to-emerald-950;
+  }
+}
