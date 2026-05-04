@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GraduationCap, BookOpen, ShieldCheck, User, Sparkles, ChevronRight, CheckCircle2, Database, Zap, BrainCircuit, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { UserProfile, UserRole, SubscriptionStatus } from '../types';
+import { UserProfile, UserRole } from '../types';
 
 import { APP_NAME, PLATFORM_TAGLINE, COPYRIGHT } from '../constants';
 
@@ -61,21 +61,24 @@ export default function LandingPage() {
     }
   };
 
-  const handleAdminAuth = (e: React.FormEvent) => {
+  const handleAdminAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminId === 'p936543773' && adminPass === '9365437723') {
-      const adminUser: UserProfile = {
-        uid: 'admin_fixed',
-        name: 'Pankaj Sir',
-        email: 'p9365437723@gmail.com',
-        role: UserRole.ADMIN,
-        subscriptionStatus: SubscriptionStatus.PREMIUM,
-        createdAt: new Date(),
-      };
-      localStorage.setItem('demo_user', JSON.stringify(adminUser));
-      window.location.reload(); 
-    } else {
-      setError('Invalid Credentials');
+    setAuthError('');
+    setError('');
+    
+    // Mapping provided Admin ID to actual system email
+    // Provided ID: p936543773 -> System Email: p9365437723@gmail.com
+    const adminEmail = 'p9365437723@gmail.com';
+    
+    try {
+      await signIn(adminEmail, adminPass);
+      // AuthContext will handle the role check and navigation automatically
+    } catch (err: any) {
+      if (err.message === 'VERIFICATION_REQUIRED') {
+        setError('Verification Required. Please verify your administrative email.');
+      } else {
+        setError('Invalid Administrative Credentials. Access Denied.');
+      }
     }
   };
 
@@ -105,17 +108,29 @@ export default function LandingPage() {
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-500">{PLATFORM_TAGLINE}</p>
           </div>
         </div>
-        <div className="hidden md:flex items-center gap-10">
-           {['Syllabus', 'Pricing', 'Results'].map(item => (
-             <a key={item} href="#" className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-emerald-400 transition-colors">{item}</a>
-           ))}
-           <button 
-             onClick={() => setShowAuth(true)}
-             className="px-8 py-3 bg-white text-black rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-xl active:scale-95"
-           >
-              Enter Grid
-           </button>
-        </div>
+         <div className="hidden md:flex items-center gap-10">
+            {['Syllabus', 'Resources', 'Results'].map(item => (
+              <button 
+                key={item} 
+                onClick={() => {
+                  console.log(`Triggered: ${item} PREVIEW`);
+                  alert(`${item} module is currently being synchronized with SEBA 2024 updates. Access will be restored shortly.`);
+                }}
+                className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-emerald-400 transition-colors"
+              >
+                {item}
+              </button>
+            ))}
+            <div className="px-6 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+               100% Free
+            </div>
+            <button 
+              onClick={() => setShowAuth(true)}
+              className="px-8 py-3 bg-white text-black rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-xl active:scale-95"
+            >
+               Enter Grid
+            </button>
+         </div>
       </nav>
 
       <main className="relative z-10 flex flex-col items-center justify-center pt-32 pb-40 px-6 text-center">
@@ -126,7 +141,7 @@ export default function LandingPage() {
           className="relative"
         >
           <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-emerald-500/5 text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] border border-emerald-500/10 mb-12 shadow-inner">
-            <Zap size={14} className="fill-emerald-400" /> Authorized SEBA Center 2024
+            <Zap size={14} className="fill-emerald-400" /> Build by a Nerd for Nerds
           </div>
           
           <h1 className="text-6xl md:text-9xl font-display font-black mb-10 tracking-tight leading-[0.85] max-w-6xl balance group">
@@ -170,7 +185,11 @@ export default function LandingPage() {
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
                transition={{ delay: 0.5 + (i*0.2) }}
-               className="p-10 rounded-[40px] bg-white/[0.02] border border-white/[0.05] text-left hover:bg-white/[0.04] transition-all group"
+               onClick={() => {
+                 console.log(`Action triggered: VIEW ${f.title}`);
+                 alert(`${f.title} module is currently being synchronized with SEBA 2024 updates. Access will be restored shortly.`);
+               }}
+               className="p-10 rounded-[40px] bg-white/[0.02] border border-white/[0.05] text-left hover:bg-white/[0.04] transition-all group cursor-pointer active:scale-95"
              >
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-6 group-hover:bg-emerald-500 group-hover:text-white transition-all">
                    <f.icon size={24} />

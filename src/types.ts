@@ -14,10 +14,12 @@ export interface UserProfile {
   name: string;
   email: string;
   role: UserRole;
-  subscriptionStatus: SubscriptionStatus;
+  subscriptionStatus?: SubscriptionStatus; // Optional for future use
   currentClass?: '9' | '10';
   bookmarks?: string[];
   createdAt: any;
+  lastLogin: any;
+  isBlocked?: boolean;
   provider?: string;
   photoURL?: string;
 }
@@ -70,8 +72,7 @@ export interface ChapterContent {
 }
 
 export interface SiteSettings {
-  upiId: string;
-  subscriptionPrice: number;
+  globalNotice?: string;
 }
 
 export interface Folder {

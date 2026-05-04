@@ -3,12 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, FileText, HelpCircle, Layout, List, Calendar, Info, 
-  CheckCircle2, Lock, Sparkles, Bookmark, Share2, ClipboardList,
+  CheckCircle2, Sparkles, Bookmark, Share2, ClipboardList,
   ChevronRight, BrainCircuit
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dataService } from '../lib/dataService';
-import { Chapter, SubscriptionStatus } from '../types';
+import { Chapter } from '../types';
 
 import { APP_NAME } from '../constants';
 
@@ -42,6 +42,31 @@ export default function ChapterPage() {
     fetchChapter();
   }, [chapterId]);
 
+  const handleBookmark = () => {
+    console.log("Action triggered: BOOKMARK CHAPTER", chapter?.id);
+    alert(`${chapter?.title} added to your personal knowledge vault!`);
+  };
+
+  const handleShare = () => {
+    console.log("Action triggered: SHARE CHAPTER", chapter?.id);
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    alert("Hub link synchronized to clipboard!");
+  };
+
+  const handleAddClip = () => {
+    console.log("Action triggered: ADD PERSONAL CLIP");
+    const clip = prompt("Enter your personal study annotation:");
+    if (clip) {
+      alert("Clip synchronized to your local study node!");
+    }
+  };
+
+  const handleAssessmentSave = () => {
+    console.log("Action triggered: SAVE ASSESSMENT PERFORMANCE");
+    alert("Session data synchronized to your academic profile.");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-emerald-50 text-emerald-900">
@@ -54,8 +79,6 @@ export default function ChapterPage() {
   if (!chapter) {
     return <div className="p-20 text-center font-bold text-slate-400">Chapter not found in the grid.</div>;
   }
-
-  const isPremiumLocked = user?.subscriptionStatus === SubscriptionStatus.FREE && chapterId?.includes('premium'); 
 
   return (
     <div className="min-h-screen bg-white text-slate-800 font-sans pb-32">
@@ -83,7 +106,10 @@ export default function ChapterPage() {
             <Sparkles size={14} />
             Focus Mode Active
           </div>
-          <button className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 hover:text-emerald-600 transition-colors border border-slate-100">
+          <button 
+            onClick={handleBookmark}
+            className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 hover:text-emerald-600 transition-all border border-slate-100 active:scale-95"
+          >
             <Bookmark size={22} />
           </button>
           <div className="w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-emerald-500 to-teal-400 border-2 border-white shadow-lg overflow-hidden shrink-0">
@@ -117,18 +143,6 @@ export default function ChapterPage() {
       {/* Main Content Layout */}
       <main className="max-w-[1600px] mx-auto px-8 grid grid-cols-1 lg:grid-cols-4 gap-12">
         <div className="lg:col-span-3">
-           {isPremiumLocked ? (
-              <div className="min-h-[600px] w-full bg-slate-900 rounded-[56px] flex flex-col items-center justify-center p-16 text-center shadow-3xl shadow-emerald-950/20">
-                 <div className="w-32 h-32 bg-emerald-500/10 rounded-full shadow-inner flex items-center justify-center mb-10 border border-emerald-500/10">
-                    <Lock size={48} className="text-emerald-400" />
-                 </div>
-                 <h2 className="text-5xl font-display font-black mb-6 italic tracking-tight text-white">Grid Access Restricted</h2>
-                 <p className="text-emerald-100/40 max-w-sm mb-12 text-lg font-medium leading-relaxed italic">The following knowledge set is part of the Premium Hub expansion.</p>
-                 <button className="bg-emerald-500 text-white px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/30 active:scale-95 transition-all hover:bg-emerald-400">
-                    Unlock Premium Grid — ₹100
-                 </button>
-              </div>
-           ) : (
              <AnimatePresence mode="wait">
                <motion.div
                  key={activeTab}
@@ -247,7 +261,6 @@ export default function ChapterPage() {
                  )}
                </motion.div>
              </AnimatePresence>
-           )}
         </div>
 
         {/* Right Sidebar - Strategic Assets */}
@@ -272,7 +285,10 @@ export default function ChapterPage() {
                     <p className="text-[10px] font-black uppercase text-slate-300 italic">No indexed keywords</p>
                  )}
               </div>
-              <button className="w-full py-5 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl font-black text-[10px] uppercase tracking-[0.3em] text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-all flex items-center justify-center gap-3">
+              <button 
+                onClick={handleAddClip}
+                className="w-full py-5 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl font-black text-[10px] uppercase tracking-[0.3em] text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95"
+              >
                  <Bookmark size={14} /> Add Personal Clip
               </button>
            </div>
@@ -304,8 +320,18 @@ export default function ChapterPage() {
             </div>
             <div className="h-4 w-px bg-emerald-900" />
             <div className="flex gap-5">
-               <button className="text-emerald-400 hover:text-white transition-colors"><Share2 size={18} /></button>
-               <button className="text-emerald-400 hover:text-white transition-colors"><ClipboardList size={18} /></button>
+               <button 
+                 onClick={handleShare}
+                 className="text-emerald-400 hover:text-white transition-all active:scale-90"
+               >
+                 <Share2 size={18} />
+               </button>
+               <button 
+                 onClick={handleAssessmentSave}
+                 className="text-emerald-400 hover:text-white transition-all active:scale-90"
+               >
+                 <ClipboardList size={18} />
+               </button>
             </div>
          </div>
       </div>

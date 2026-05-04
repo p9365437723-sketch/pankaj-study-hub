@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { dataService } from '../lib/dataService';
 import { 
-  Class, SubscriptionStatus, 
+  Class, 
   Folder as FolderType, UserFile, UserNote, TeamMember 
 } from '../types';
 import { db } from '../lib/firebase';
@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [loadingNotes, setLoadingNotes] = useState(true);
   const [loadingMembers, setLoadingMembers] = useState(true);
+  const [globalNotice, setGlobalNotice] = useState<string | null>(null);
 
   // Modal States
   const [activeModal, setActiveModal] = useState<'folder' | 'file' | 'note' | 'member' | null>(null);
@@ -49,7 +50,6 @@ export default function Dashboard() {
   const [formFolderId, setFormFolderId] = useState('');
   const [formSize, setFormSize] = useState('');
 
-  const isPremium = user?.subscriptionStatus === SubscriptionStatus.PREMIUM;
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -63,6 +63,14 @@ export default function Dashboard() {
   // Real-time Firestore Listeners
   useEffect(() => {
     if (!user || !db) return;
+
+    // Global Notice Listener
+    const settingsUnsub = onSnapshot(doc(db, 'settings', 'global'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setGlobalNotice(data.globalNotice || null);
+      }
+    });
 
     const userPath = `users/${user.uid}`;
 
@@ -99,6 +107,7 @@ export default function Dashboard() {
     );
 
     return () => {
+      settingsUnsub();
       foldersUnsub();
       filesUnsub();
       notesUnsub();
@@ -109,6 +118,7 @@ export default function Dashboard() {
   // Firestore Actions
   const handleCreateFolder = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Action triggered: CREATE FOLDER", formName);
     if (!user || !db || !formName) return;
     setModalLoading(true);
     try {
@@ -116,10 +126,12 @@ export default function Dashboard() {
         name: formName,
         createdAt: serverTimestamp()
       });
+      console.log("Folder creation successful");
       setActiveModal(null);
       setFormName('');
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Folder creation failed:", err);
+      alert(`SYNC ERROR: Folder initialization failed. ${err.message}`);
     } finally {
       setModalLoading(false);
     }
@@ -127,6 +139,7 @@ export default function Dashboard() {
 
   const handleAddFile = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Action triggered: ADD FILE", formName);
     if (!user || !db || !formName || !formSize) return;
     setModalLoading(true);
     try {
@@ -136,12 +149,14 @@ export default function Dashboard() {
         size: formSize,
         createdAt: serverTimestamp()
       });
+      console.log("File indexing successful");
       setActiveModal(null);
       setFormName('');
       setFormSize('');
       setFormFolderId('');
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("File indexing failed:", err);
+      alert(`SYNC ERROR: File index failed. ${err.message}`);
     } finally {
       setModalLoading(false);
     }
@@ -149,6 +164,7 @@ export default function Dashboard() {
 
   const handleCreateNote = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Action triggered: CREATE NOTE", formTitle);
     if (!user || !db || !formTitle) return;
     setModalLoading(true);
     try {
@@ -157,11 +173,13 @@ export default function Dashboard() {
         content: formContent,
         createdAt: serverTimestamp()
       });
+      console.log("Note capture successful");
       setActiveModal(null);
       setFormTitle('');
       setFormContent('');
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Note capture failed:", err);
+      alert(`SYNC ERROR: Insight capture failed. ${err.message}`);
     } finally {
       setModalLoading(false);
     }
@@ -169,6 +187,7 @@ export default function Dashboard() {
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Action triggered: ADD MEMBER", formName);
     if (!user || !db || !formName) return;
     setModalLoading(true);
     try {
@@ -177,22 +196,27 @@ export default function Dashboard() {
         role: formRole || 'Contributor',
         createdAt: serverTimestamp()
       });
+      console.log("Member deployment successful");
       setActiveModal(null);
       setFormName('');
       setFormRole('');
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Member deployment failed:", err);
+      alert(`SYNC ERROR: Member deployment failed. ${err.message}`);
     } finally {
       setModalLoading(false);
     }
   };
 
   const handleDelete = async (collectionName: string, id: string) => {
-    if (!user || !db) return;
+    console.log(`Action triggered: DELETE ${collectionName}/${id}`);
+    if (!user || !db || !window.confirm('IRREVERSIBLE COMMAND: Dissolve this node from your personal grid?')) return;
     try {
       await deleteDoc(doc(db, `users/${user.uid}/${collectionName}`, id));
-    } catch (err) {
-      console.error(err);
+      console.log("Node dissolution successful");
+    } catch (err: any) {
+      console.error("Node dissolution failed:", err);
+      alert(`SYNC ERROR: Node dissolution failed. ${err.message}`);
     }
   };
 
@@ -215,8 +239,8 @@ export default function Dashboard() {
              <div className="hidden md:block text-right">
                 <p className="text-sm font-black italic">{user?.name}</p>
                 <div className="flex items-center justify-end gap-1.5">
-                   <span className={`w-1.5 h-1.5 rounded-full ${isPremium ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`}></span>
-                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{isPremium ? 'Elite Premium' : 'Free Tier'}</p>
+                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Student Node</p>
                 </div>
              </div>
              <div className="w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-emerald-500 to-teal-400 border-2 border-white shadow-lg shrink-0 overflow-hidden">
@@ -257,6 +281,35 @@ export default function Dashboard() {
            ))}
         </section>
 
+        {/* Global Notice System */}
+        <AnimatePresence>
+          {globalNotice && (
+            <motion.section 
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              className="mb-12"
+            >
+               <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-1 rounded-[40px] shadow-2xl shadow-emerald-500/20">
+                  <div className="bg-[#020617] rounded-[38px] p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
+                     <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center shrink-0 border border-emerald-500/20 relative z-10">
+                        <Sparkles className="text-emerald-400 animate-pulse" size={32} />
+                     </div>
+                     <div className="relative z-10 flex-grow">
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-500 mb-2">Platform Broadcast</p>
+                        <h4 className="text-xl md:text-2xl font-display font-black italic text-white leading-relaxed">
+                           {globalNotice}
+                        </h4>
+                     </div>
+                     <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+                        <Database size={120} />
+                     </div>
+                  </div>
+               </div>
+            </motion.section>
+          )}
+        </AnimatePresence>
+
         {/* Welcome Section */}
         <section className="mb-20">
            <div className="bg-emerald-950 rounded-[48px] p-12 text-white relative overflow-hidden shadow-2xl">
@@ -271,16 +324,20 @@ export default function Dashboard() {
                     <p className="text-emerald-100/60 text-lg font-medium leading-relaxed max-w-md mb-10">
                        Access high-speed notes and interactive assessments tailored for Assam SEBA syllabus.
                     </p>
-                    <div className="flex gap-4">
-                       {!isPremium && (
-                         <button className="bg-emerald-500 text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-2">
-                            Upgrade to Premium <ArrowRight size={18} />
-                         </button>
-                       )}
-                       <button className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all">
-                          Curriculum Info
-                       </button>
-                    </div>
+                     <div className="flex gap-4">
+                        <div className="bg-emerald-500/20 text-emerald-400 px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center gap-2 border border-emerald-500/20 cursor-default">
+                           All content free for all students 🎉
+                        </div>
+                        <button 
+                          onClick={() => {
+                            console.log("Triggered: Curriculum Info VIEW");
+                            alert("SEBA 2024-25 Curriculum: All subjects follow NCERT guidelines with specialized Assam regional modules.");
+                          }}
+                          className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
+                        >
+                           Curriculum Info
+                        </button>
+                     </div>
                  </div>
                  
                  <div className="hidden lg:grid grid-cols-2 gap-6">
