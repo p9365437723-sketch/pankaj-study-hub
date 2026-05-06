@@ -142,13 +142,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, pass: string) => {
     if (auth) {
-      const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-      if (!userCredential.user.emailVerified) {
-        await fbSignOut(auth);
-        throw new Error('VERIFICATION_REQUIRED');
-      }
-    }
-  };
+      const signIn = async (email: string, pass: string) => {
+  if (auth) {
+    await signInWithEmailAndPassword(auth, email, pass);
+  }
+};
 
   const signInWithGoogle = async () => {
     if (auth && googleProvider) {
