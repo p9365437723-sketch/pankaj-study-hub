@@ -7,6 +7,7 @@ import {
   sendEmailVerification,
   signInWithPopup
 } from 'firebase/auth';
+
 import { 
   doc, 
   getDoc, 
@@ -19,6 +20,7 @@ import {
   getDocs, 
   limit 
 } from 'firebase/firestore';
+
 import { auth, db, googleProvider } from '../lib/firebase';
 import { UserProfile, UserRole } from '../types';
 
@@ -35,26 +37,35 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDemoMode, setIsDemoMode] = useState(false);
 
   useEffect(() => {
+
     if (!auth) {
       setIsDemoMode(true);
+
       const saved = localStorage.getItem('demo_user');
+
       if (saved) {
         const savedUser = JSON.parse(saved);
         setUser(savedUser);
       }
+
       setLoading(false);
       return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser && (fbUser.emailVerified || fbUser.providerData.some(p => p.providerId === 'google.com'))) {
+
+      if (fbUser) {
+
         try {
+
           if (!db) {
+
             const profile: UserProfile = {
               uid: fbUser.uid,
               name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Student',
@@ -64,64 +75,98 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               lastLogin: new Date(),
               photoURL: fbUser.photoURL || undefined
             };
+
             setUser(profile);
             return;
           }
 
           const userRef = doc(db, 'users', fbUser.uid);
+
           const userSnap = await getDoc(userRef);
 
           if (userSnap.exists()) {
+
             const userData = userSnap.data() as UserProfile;
-            
-            // Check if user is blocked
+
             if (userData.isBlocked) {
+
               await fbSignOut(auth);
+
               setUser(null);
               setLoading(false);
+
               return;
             }
 
-            // Update last login
             await updateDoc(userRef, {
               lastLogin: serverTimestamp()
             });
 
-            setUser({ ...userData, lastLogin: new Date() });
+            setUser({
+              ...userData,
+              lastLogin: new Date()
+            });
+
           } else {
-            // Check for existing user by email to avoid duplicates
+
             const usersRef = collection(db, 'users');
-            const q = query(usersRef, where('email', '==', fbUser.email), limit(1));
+
+            const q = query(
+              usersRef,
+              where('email', '==', fbUser.email),
+              limit(1)
+            );
+
             const querySnap = await getDocs(q);
 
             if (!querySnap.empty) {
+
               const existingData = querySnap.docs[0].data() as UserProfile;
-              
+
               if (existingData.isBlocked) {
+
                 await fbSignOut(auth);
                 setUser(null);
+
               } else {
+
                 setUser(existingData);
               }
+
             } else {
-              // New user - create document
+
               const newUser: UserProfile = {
                 uid: fbUser.uid,
                 name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Student',
                 email: fbUser.email || '',
-                role: fbUser.email === 'p9365437723@gmail.com' ? UserRole.ADMIN : UserRole.STUDENT,
+
+                role:
+                  fbUser.email === 'p9365437723@gmail.com'
+                    ? UserRole.ADMIN
+                    : UserRole.STUDENT,
+
                 createdAt: serverTimestamp(),
                 lastLogin: serverTimestamp(),
                 isBlocked: false,
-                provider: fbUser.providerData[0]?.providerId === 'google.com' ? 'google' : 'password',
+
+                provider:
+                  fbUser.providerData[0]?.providerId === 'google.com'
+                    ? 'google'
+                    : 'password',
+
                 photoURL: fbUser.photoURL || undefined
               };
+
               await setDoc(userRef, newUser);
+
               setUser(newUser);
             }
           }
+
         } catch (e) {
-          console.error("Error fetching user profile:", e);
+
+          console.error('Error fetching user profile:', e);
+
           setUser({
             uid: fbUser.uid,
             name: fbUser.displayName || 'Student',
@@ -131,55 +176,101 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             lastLogin: new Date(),
           });
         }
+
       } else {
+
         setUser(null);
       }
+
       setLoading(false);
     });
 
     return unsubscribe;
+
   }, []);
 
   const signIn = async (email: string, pass: string) => {
+
     if (auth) {
-      const signIn = async (email: string, pass: string) => {
-  if (auth) {
-    await signInWithEmailAndPassword(auth, email, pass);
-  }
-};
+
+      await signInWithEmailAndPassword(
+        auth,
+        email,
+        pass
+      );
+    }
+  };
 
   const signInWithGoogle = async () => {
+
     if (auth && googleProvider) {
-      await signInWithPopup(auth, googleProvider);
+
+      await signInWithPopup(
+        auth,
+        googleProvider
+      );
     }
   };
 
   const signUp = async (email: string, pass: string) => {
+
     if (auth) {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      await sendEmailVerification(userCredential.user);
+
+      const userCredential =
+        await createUserWithEmailAndPassword(
+          auth,
+          email,
+          pass
+        );
+
+      await sendEmailVerification(
+        userCredential.user
+      );
+
       await fbSignOut(auth);
     }
   };
 
   const signOut = async () => {
+
     localStorage.removeItem('demo_user');
+
     if (auth) {
+
       await fbSignOut(auth);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signInWithGoogle, signUp, signOut, isDemoMode }}>
+
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signIn,
+        signInWithGoogle,
+        signUp,
+        signOut,
+        isDemoMode
+      }}
+    >
+
       {children}
+
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
+
   const context = useContext(AuthContext);
+
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+
+    throw new Error(
+      'useAuth must be used within an AuthProvider'
+    );
   }
+
   return context;
 }
